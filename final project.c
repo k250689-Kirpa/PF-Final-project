@@ -1,305 +1,199 @@
+//stms
 #include <windows.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#define RED     FOREGROUND_RED
+#define GREEN   FOREGROUND_GREEN
+#define BLUE    FOREGROUND_BLUE
+#define YELLOW  (FOREGROUND_RED | FOREGROUND_GREEN)
+#define CYAN    (FOREGROUND_GREEN | FOREGROUND_BLUE)
+#define MAGENTA (FOREGROUND_RED | FOREGROUND_BLUE)
+#define WHITE   (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 
-
-
-
-int puzzle[3][3];
-int goalState[3][3] = {
-    {1,2,3},
-    {4,5,6},
-    {7,8,0}
-};
-
-void printPuzzle() {
-    printf("\n");
-    int r, c;
-    for(r=0; r<3; r++) {
-        for(c=0; c<3; c++) {
-            if(puzzle[r][c] == 0)
-                printf("   ");
-            else
-                printf("%2d ", puzzle[r][c]);
-        }
-        printf("\n");
-    }
-    printf("\nMove using W A S D: ");
+// Function to print colored text
+void printColor(const char* text, int color) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);  // Set color
+    printf("%s", text);                        // Print text
+    SetConsoleTextAttribute(hConsole, WHITE);  // Reset to default
 }
+void rules();
+void pattern(int arr[3][3]);
+int readEnteredKey();
+void move(int arr[3][3], int k, int *moves);
+void showMatrix(int arr[3][3]);
+int win(int arr[3][3]);
 
-int isSolved() {
-    int r, c;
-    for(r=0; r<3; r++)
-        for(c=0; c<3; c++)
-            if(puzzle[r][c] != goalState[r][c])
-                return 0;
-    return 1;
-}
-
-void findEmpty(int *er, int *ec) {
-    int r, c;
-    for(r=0; r<3; r++)
-        for(c=0; c<3; c++)
-            if(puzzle[r][c] == 0) {
-                *er = r;
-                *ec = c;
-                return;
-            }
-}
-
-void moveTile(char m) {
-    int er, ec;
-    findEmpty(&er, &ec);
-
-    int nr = er, nc = ec;
-
-    if(m=='w' || m=='W') nr++;
-    else if(m=='s' || m=='S') nr--;
-    else if(m=='a' || m=='A') nc++;
-    else if(m=='d' || m=='D') nc--;
-
-    if(nr >= 0 && nr <= 2 && nc >= 0 && nc <= 2) {
-        int temp = puzzle[er][ec];
-        puzzle[er][ec] = puzzle[nr][nc];
-        puzzle[nr][nc] = temp;
-    }
-}
-
-void shufflePuzzle() {
-    int nums[9] = {1,2,3,4,5,6,7,8,0};
-    int i, r;
-
-    
-    for(i=8; i>0; i--) {
-        int j = rand() % (i + 1);
-        int temp = nums[i];
-        nums[i] = nums[j];
-        nums[j] = temp;
-    }
-
-    
-    int k = 0;
-    int row, col;
-    for(row=0; row<3; row++)
-        for(col=0; col<3; col++)
-            puzzle[row][col] = nums[k++];
-}
-
-void startPuzzleGame() {
-    srand(time(NULL));
-    shufflePuzzle();
-
-    char move;
-    while(1) {
-        system("cls");
-        printf(" Solve the Sliding Puzzle (3x3)\n");
-        printf(" Arrange numbers 1 to 8. Blank = 0\n\n");
-
-        printPuzzle();
-
-        if(isSolved()) {
-            printf("\n Congratulations! Puzzle Solved!\n");
-            printf(" Press ENTER to continue...");
-            getchar();
-            getchar();
-            break;
-        }
-
-        scanf(" %c", &move);
-        moveTile(move);
-    }
-}
-
-
-struct StudentInfo
-{
-    char ID[10];
-    char Name[20];
-    char Email[30];
-    char Phone[20];
+typedef struct {
+    char ID[11];
+    char Name[50];
+    char Email[31];
+    char Phone[21];
     int  NumberOfCourse;
-};
+} Students;
 
-struct CourseInfo
-{
-    char StudentID[10];
+typedef struct{
+    char StudentID[11];
     char Code[10];
     char Name[20];
-};
+}Courses;
 
-struct StudentInfo Students[100];
-struct CourseInfo Courses[500];
+
+
+const char* ACCOUNT_FILE = "data_new.dat";
+const char* COURSE_FILE = "courses_new.dat";
+
+
+
+
+void Menu();
+void ExitProject();
+void AddNewStudent();
+void ClearInputBuffer(); 
+void ShowAllStudents();
+int SearchStudent(char StudentID[10]);
+void DeleteStudent(char StudentID[11]);
+void DeleteAllStudents();
+int login();
+void inputPassword(char *pass);
+void EditStudent(char *StudentID);
+void PlaySlidingPuzzle();
+
+
+
+
+
+
 
 
 int i,j;
 int TotalStudents = 0;
-int TotalCourse = 0;
-char StudentID[10];
-FILE *AllStudents;
-FILE *AllCourses;
-FILE *ExistingAllStudents;
-FILE *TempAllStudents;
-FILE *ExistingAllCourses;
-FILE *TempAllCourses;
+int TotalCourses = 0;
+char StudentID[11];
+char USERNAME[] = "student";
+char PASSWORD[] = "Fast1234";
 
 
-bool IsRunning = true;
-void Menu();
-void AddNewStudent();
-void ShowAllStudents();
-int  SearchStudent(char StudentID[10]);
-void EditStudent(int StudentFoundIndex);
-void DeleteStudent(int StudentIndex);
-void DeleteAllStudents();
-int  IsAlreadyExists(char GivenLine[30],char InfoType, char StudentID[300]);
-void ErrorAndRestart(char *Error[100]);
-void DeleteCourseByIndex(int CourseIndex);
-void DeleteStudentByIndex(int CourseIndex);
-void UserGuideline();
-void AboutUs();
-void GoBackOrExit();
-void ExitProject();
-void DataSeed();
-
-int main()
+int main (void)
 {
-	startPuzzleGame(); 
-    DataSeed(); 
+	system("cls");
 
-    while(IsRunning)
+    if(login() == 0) 
     {
-        Menu();
-        int Option;
-        scanf("%d",&Option);
-        switch(Option)
-        {
-        case 0:
-            IsRunning = false;
-            ExitProject();
-            break;
-        case 1:
-            system("cls");
-            printf("\n\t\t **** Add A New Student ****\n\n");
-            AddNewStudent();
-            GoBackOrExit();
-            break;
-        case 2:
-            system("cls");
-            printf("\n\t\t **** All Students ****\n\n");
-            ShowAllStudents();
-            GoBackOrExit();
-            break;
-        case 3:
-        {
-            system("cls");
-            printf("\n\t\t **** Search Students ****\n\n");
-            printf(" Enter The Student ID: ");
-            scanf("%s",StudentID);
-            int IsFound = SearchStudent(StudentID);
-            if(IsFound<0)
-            {
-                printf(" No Student Found\n\n");
-            }
-            printf("\n");
-            GoBackOrExit();
-            break;
-        }
-        case 4:
-            system("cls");
-            printf("\n\t\t **** Edit a Student ****\n\n");
-            printf(" Enter The Student ID: ");
-            scanf("%s",StudentID);
-            int StudentFoundIndex = SearchStudent(StudentID);
-
-            if(StudentFoundIndex>=0)
-            {
-                EditStudent(StudentFoundIndex);
-            }
-            else
-            {
-                printf(" No Student Found\n\n");
-            }
-            GoBackOrExit();
-            break;
-        case 5:
-            system("cls");
-            printf("\n\t\t **** Delete a Student ****\n\n");
-            printf(" Enter The Student ID: ");
-            scanf("%s",StudentID);
-
-            int DeleteStudentFoundIndex = SearchStudent(StudentID);
-
-            if(DeleteStudentFoundIndex>=0)
-            {
-                char Sure = 'N';
-                getchar();
-                printf("\n\n");
-                printf(" Are you sure want to delete this student? (Y/N): ");
-                scanf("%c",&Sure);
-
-                if(Sure == 'Y' || Sure == 'y')
-                {
-                    DeleteStudent(DeleteStudentFoundIndex);
-                }
-                else
-                {
-                    printf(" Your Data is Safe.\n\n");
-                    GoBackOrExit();
-                }
-
-            }
-            else
-            {
-                printf(" No Student Found\n\n");
-                GoBackOrExit();
-            }
-
-            break;
-        case 6:
-        {
-            char Sure = 'N';
-            getchar();
-            system("cls");
-            printf("\n\t\t **** Delete ALL Students ****\n\n");
-
-            printf(" Are you sure want to delete all the students? (Y/N): ");
-            scanf("%c",&Sure);
-            if(Sure == 'Y' || Sure == 'y')
-            {
-                DeleteAllStudents();
-            }
-            else
-            {
-                printf(" Your Data is Safe.\n\n");
-                GoBackOrExit();
-            }
-            break;
-        }
-
-        case 7:
-            system("cls");
-            break;
-        case 8:
-            system("cls");
-            UserGuideline();
-            GoBackOrExit();
-            break;
-        case 9:
-            system("cls");
-            AboutUs();
-            GoBackOrExit();
-            break;
-        default:
-            ExitProject();
-            break;
-        }
+       
+        return 0;  
     }
+	
+	int choice;
+	while(1)
+	{
+		Menu();
+		scanf("%d", &choice);
+		
+		switch(choice)
+		{
+			case 0:
+				ExitProject();
+				return 0;
+			case 1:
+				system("cls");
+				printf("\n\t\t **** Add A New Student ****\n\n");
+				AddNewStudent();
+				break;
+			case 2:
+				system("cls");
+            	printf("\n\t\t **** All Students ****\n\n");
+				ShowAllStudents();
+				break;	
+			case 3:
+                system("cls");
+	            printf("\n\t\t **** Search Students ****\n\n");
+	            printf(" Enter The Student ID: ");
+	            scanf("%s",StudentID);
+	            int x = SearchStudent(StudentID);
+	            break;
+        	case 4:
+	            system("cls");
+	            printf("\n\t\t **** Edit a Student ****\n\n");
+	            printf(" Enter The Student ID: ");
+	            scanf("%s",StudentID);
+	            int StudentFoundIndex = SearchStudent(StudentID);
+	
+	            if(StudentFoundIndex>=0)
+	            {
+	                EditStudent(StudentID);
+	            }
+	            else
+	            {
+	                printf(" No Student Found\n\n");
+	            }
+	            break;	            
+			case 5:
+				system("cls");
+	            printf("\n\t\t **** Delete a Student ****\n\n");
+	            printf(" Enter The Student ID: ");
+	            scanf("%s",StudentID);
+	
+	            int DeleteStudentFoundIndex = SearchStudent(StudentID);
+	
+	            if(DeleteStudentFoundIndex>=0)
+	            {
+	                char Sure = 'N';
+	                getchar();
+	                printf("\n\n");
+	                printf(" Are you sure want to delete this student? (Y/N): ");
+	                scanf(" %c",&Sure);
+	
+	                if(Sure == 'Y' || Sure == 'y')
+	                {
+	                    DeleteStudent(StudentID);
+	                }
+	                else
+	                {
+	                    printf(" Your Data is Safe.\n\n");
+	                }
+	
+	            }
+	            else
+	            {
+	                printf(" No Student Found\n\n");
+	            }
+	
+	            break;
+			case 6:
+				system("cls");
+				char Sure = 'N';
 
-    return 0;
-} 
+	            printf("\n\t\t **** Delete ALL Students ****\n\n");
+	
+	            printf(" Are you sure want to delete all the students? (Y/N): ");
+	            scanf(" %c",&Sure);
+	            if(Sure == 'Y' || Sure == 'y')
+	            {
+	                DeleteAllStudents();
+	            }
+	            else
+	            {
+	                printf(" Your Data is Safe.\n\n");
+	            }
+	            break;	            
+        	case 7:
+	            system("cls");
+	            break;
+			case 8:
+				 PlaySlidingPuzzle();  
+				break;	
+		}
+	}
+}
+
+void ClearInputBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
 
 void Menu()
 {
@@ -313,127 +207,186 @@ void Menu()
     printf("\t\t[5] Delete A student.\n");
     printf("\t\t[6] Delete All students.\n");
     printf("\t\t[7] Clear The window.\n");
-    printf("\t\t[8] User Guideline.\n");
-    printf("\t\t[9] About Us.\n");
+    printf("\t\t[8] Play 3x3 Puzzle Game\n");
     printf("\t\t[0] Exit the Program.\n");
     printf("\t\t=======================\n");
     printf("\t\tEnter The Choice: ");
-} 
-
+}
+void ExitProject()
+{
+	int i;
+	system("cls");
+	char t[] = "======THANK YOU======\n";
+	char s[] = "======SEE YOU SOON======\n";
+	
+	for (i=0; i<strlen(t); i++)
+	{
+		printf("%c", t[i]);
+		Sleep(40);
+	 } 
+	 for (i=0; i<strlen(s); i++)
+	{
+		printf("%c", s[i]);
+		Sleep(40);
+	 }
+	 exit(0); 
+}
 void AddNewStudent()
 {
-    char StudentID[300];
-    char Name[300];
-    char Phone[300];
-    char Email[300];
+    char Name[50];
+    char ID[11];
+    char Email[31];
+    char Phone[21];
     int NumberOfCourses;
-    char CourseCode[300];
-    char CourseName[300];
-
-    int IsValidID = 0;
-    while(!IsValidID)
-    {
-        printf(" Enter The ID: ");
-        scanf("%s",&StudentID);
-        if(IsAlreadyExists(StudentID,'i',StudentID) > 0)
-        {
-            printf(" Error: This ID is already exists.\n\n");
-            IsValidID = 0;
-        }
-        else if(strlen(StudentID) > 10)
-        {
-            printf(" Error: ID can not be more than 10 characters.\n\n");
-            IsValidID = 0;
-        }
-        else if(strlen(StudentID) <= 0)
-        {
-            printf(" Error: ID can not be empty.\n\n");
-            IsValidID = 0;
-        }
-        else
-        {
-            IsValidID = 1;
-        }
+    char CourseCode[10];
+    char CourseName[20];
+    
+    int exists;
+    
+    FILE *read_file = fopen(ACCOUNT_FILE, "rb");
+    if (read_file == NULL) {
+        printf("\nNOTE: Student data file not found or could not be opened for reading. Continuing...\n");
     }
-
+    
+    Students st;
+    Courses cr;
+    
+    int IsValidID = 0;
+    while(!IsValidID){
+        if (read_file != NULL) rewind(read_file); 
+        
+        printf("Enter ID: ");
+        scanf("%10s", ID);
+        ClearInputBuffer();
+        
+        if (strlen(ID)<=0)
+        {
+            printf(" Error: ID cannot be empty.\n\n");
+            continue;
+        }
+        
+        exists= 0;
+        if (read_file != NULL) {
+            while(fread(&st, sizeof(st), 1, read_file))
+            {
+                if (strcmp(st.ID, ID) == 0)
+                {
+                    exists = 1;
+                    break;
+                }
+            }
+        }
+        
+        if (exists)
+        {
+            printf(" Error: This ID already exists.\n\n");
+            continue;
+        }
+        IsValidID = 1;
+    }
+    
     int IsValidName = 0;
-    while(!IsValidName)
+    while (!IsValidName)
     {
-        printf(" Enter The Name: ");
-        scanf(" %[^\n]s",&Name);
-        if(strlen(Name) > 20)
+        printf("Enter student name: ");
+        scanf(" %49[^\n]", Name);
+        ClearInputBuffer();
+        
+        if (strlen(Name)<=0)
         {
-            printf(" Error: Name can not be more than 20 characters.\n\n");
-            IsValidName = 0;
+            printf(" Error: Name cannot be empty.\n\n");
+            continue;
         }
-        if(strlen(Name) <= 0)
-        {
-            printf(" Error: Name can not be empty.\n\n");
-            IsValidName = 0;
-        }
-        else
+         else
         {
             IsValidName = 1;
         }
     }
-
+    
     int IsValidEmail = 0;
-    while(!IsValidEmail)
-    {
-        printf(" Enter The Email: ");
-        scanf("%s",&Email);
-        if(IsAlreadyExists(Email,'e',StudentID) > 0)
+    while(!IsValidEmail){
+        
+        if (read_file != NULL) rewind(read_file);
+        
+        printf("Enter Email: ");
+        scanf("%30s", Email);
+        ClearInputBuffer();
+        
+        if (strlen(Email)<=0)
         {
-            printf(" This Email is Already Exists.\n");
-            IsValidEmail = 0;
+            printf(" Error: Email cannot be empty.\n\n");
+            continue;
         }
-        else if(strlen(Email) > 30)
+        
+        exists= 0;
+        if (read_file != NULL) {
+            while(fread(&st, sizeof(st), 1, read_file))
+            {
+                if (strcmp(st.Email, Email) == 0)
+                {
+                    exists = 1;
+                    break;
+                }
+            }
+        }
+        
+        if (exists)
         {
-            printf(" Error: Email can not be more than 30 characters.\n\n");
-            IsValidEmail = 0;
+            printf(" Error: This Email already exists.\n\n");
+            continue;
         }
-        else if(strlen(Email) <= 0)
-        {
-            printf(" Error: Email can not be empty.\n\n");
-            IsValidEmail = 0;
-        }
-        else
-        {
-            IsValidEmail = 1;
-        }
+        IsValidEmail = 1;
     }
-
+    
     int IsValidPhone = 0;
-    while(!IsValidPhone)
-    {
-        printf(" Enter The Phone: ");
-        scanf("%s",&Phone);
-        if(IsAlreadyExists(Phone,'p',StudentID) > 0)
+    while(!IsValidPhone){
+        
+        if (read_file != NULL) rewind(read_file);
+        
+        printf("Enter Phone: ");
+        scanf("%20s", Phone);
+        ClearInputBuffer();
+        
+        if (strlen(Phone)<=0)
         {
-            printf(" This Phone Number is Already Exists\n");
-            IsValidPhone = 0;
+            printf(" Error: Phone number cannot be empty.\n\n");
+            continue;
         }
-        else if(strlen(Phone) > 20)
+        
+        exists= 0;
+        if (read_file != NULL) {
+            while(fread(&st, sizeof(st), 1, read_file))
+            {
+                if (strcmp(st.Phone, Phone) == 0)
+                {
+                    exists = 1;
+                    break;
+                }
+            }
+        }
+        
+        if (exists)
         {
-            printf(" Error: Phone can not be more than 20 characters.\n\n");
-            IsValidPhone = 0;
+            printf(" Error: This Phone number already exists.\n\n");
+            continue;
         }
-        else if(strlen(Phone) <= 0)
-        {
-            printf(" Error: Phone can not be empty.\n\n");
-            IsValidPhone = 0;
-        }
-        else
-        {
-            IsValidPhone = 1;
-        }
+        IsValidPhone = 1;
     }
-
+    
+    if (read_file != NULL) {
+        fclose(read_file);
+    }
+    
     int IsValidNumberOfCourse = 0;
     while(!IsValidNumberOfCourse)
     {
-        printf(" Number of courses: ");
-        scanf("%d",&NumberOfCourses);
+        printf(" Enter number of courses (1-4): ");
+        if (scanf("%d",&NumberOfCourses) != 1) { 
+            printf(" Error: Invalid input. Please enter a number.\n\n");
+            ClearInputBuffer();
+            continue;
+        }
+        
         if(NumberOfCourses <= 0 || NumberOfCourses > 4)
         {
             printf(" Error: Number of courses can not be more than 4 and less than 1.\n\n");
@@ -444,503 +397,620 @@ void AddNewStudent()
             IsValidNumberOfCourse = 1;
         }
     }
-
-    strcpy(Students[TotalStudents].ID,StudentID);
-    strcpy(Students[TotalStudents].Name,Name);
-    strcpy(Students[TotalStudents].Phone,Phone);
-    strcpy(Students[TotalStudents].Email,Email);
-    Students[TotalStudents].NumberOfCourse = NumberOfCourses;
+    ClearInputBuffer();
+    
+    strcpy(st.ID, ID);
+    strcpy(st.Name, Name);
+    strcpy(st.Email, Email);
+    strcpy(st.Phone, Phone);
+    st.NumberOfCourse = NumberOfCourses;
     TotalStudents++;
-
-    for(i=0; i<NumberOfCourses; i++)
-    {
-
-        printf(" Enter Course %d Code: ",i+1);
-        scanf("%s",&CourseCode);
-
-        printf(" Enter Course %d Name: ",i+1);
-        scanf(" %[^\n]s",&CourseName);
-
-        strcpy(Courses[TotalCourse].StudentID,StudentID);
-        strcpy(Courses[TotalCourse].Code,CourseCode);
-        strcpy(Courses[TotalCourse].Name,CourseName);
-        TotalCourse++;
+    
+    FILE *write_file = fopen(ACCOUNT_FILE, "ab"); // Open in append binary mode
+    if (write_file == NULL) {
+        printf("\nUnable to open file for writing data!!");
+        return;
+    }
+    fwrite(&st, sizeof(st), 1, write_file);
+    fclose(write_file); 
+    
+    FILE *cfile = fopen(COURSE_FILE, "ab");
+    if(cfile == NULL){
+        printf("\nUnable to open courses file!\n");
+        return;
     }
 
-    printf("\n Student Added Successfully.\n\n");
+    for(i = 0; i < NumberOfCourses; i++)
+    {
+        printf(" Enter Course %d Code (max 9 chars): ", i+1);
+        scanf("%9s", CourseCode);
+        ClearInputBuffer();
+
+        printf(" Enter Course %d Name (max 19 chars): ", i+1);
+        scanf(" %19[^\n]", CourseName);
+        ClearInputBuffer();
+
+        strcpy(cr.StudentID, ID);
+        strcpy(cr.Code, CourseCode);
+        strcpy(cr.Name, CourseName);
+        TotalCourses++;
+
+        fwrite(&cr, sizeof(cr), 1, cfile);
+    }
+
+    fclose(cfile);
+    
+    printf("\nAccount created successfully!");
+    printf("\nPress ENTER to return to the menu...");
+    getchar(); 
 }
 
 void ShowAllStudents()
 {
+	FILE *read_file = fopen(ACCOUNT_FILE, "rb");
+	if (read_file == NULL)
+	{
+		printf("\n\n No student records found. File %s does not exist or is empty.\n", ACCOUNT_FILE);
+    	printf("\nPress ENTER to return to the menu...");
+    	getchar(); 
+    	return;
+	}
+	Students st;
+	int record_count = 0; 
+	
     printf("|==========|====================|==============================|====================|=============|\n");
-    printf("|    ID    |        Name        |            Email             |       Phone        |  NO.Course  |\n");
+    
+    printf("|  %-6s  |  %-16s  |  %-26s  |  %-16s  |  %-9s  |\n", "ID", "Name", "Email", "Phone", "NO.Course");
+    
     printf("|==========|====================|==============================|====================|=============|\n");
-
-    for(i=0; i<TotalStudents; i++)
+	
+    while (fread(&st, sizeof(st), 1, read_file) == 1) 
     {
-        printf("|");
-        printf("%s",Students[i].ID);
-        for(j=0; j < (10-strlen(Students[i].ID)); j++)
-        {
-            printf(" ");
-        }
-        printf("|");
-        printf("%s",Students[i].Name);
-        for(j=0; j < (20-strlen(Students[i].Name)); j++)
-        {
-            printf(" ");
-        }
-        printf("|");
-        printf("%s",Students[i].Email);
-        for(j=0; j < (30-strlen(Students[i].Email)); j++)
-        {
-            printf(" ");
-        }
-        printf("|");
-        printf("%s",Students[i].Phone);
-        for(j=0; j < (20-strlen(Students[i].Phone)); j++)
-        {
-            printf(" ");
-        }
-        printf("|");
-        printf("%d",Students[i].NumberOfCourse);
-        for(j=0; j < 12; j++)
-        {
-            printf(" ");
-        }
-        printf("|\n");
+        // Print Data Line: Use precise format specifiers to match column widths
+        printf("|%-10s|%-20s|%-30s|%-20s|%-13d|\n", 
+               st.ID, 
+               st.Name, 
+               st.Email, 
+               st.Phone, 
+               st.NumberOfCourse);
+        
+        // Print Separator Line after each record, as requested
         printf("|----------|--------------------|------------------------------|--------------------|-------------|\n");
+    	record_count++;
+	}
 
+	// Close the file as soon as reading is done
+    fclose(read_file); 
+
+	if (record_count == 0)
+	{
+		printf("\n\nThe file was empty. No records to display.\n");
+    } else {
+    	printf("\nTotal Students: %d\n", record_count);
     }
-    printf("\n");
+    
+    printf("\nPress ENTER to return to the menu...");
+    getchar();
+    
+    
 }
-
 int SearchStudent(char StudentID[10])
 {
-    system("cls");
-    int StudentFoundIndex = -1;
+	system("cls");
+	Students st;
+	Courses cr;
+	int student_found = 0;
+    int course_count = 0;
+	
+	FILE *student_file = fopen(ACCOUNT_FILE, "rb");
+    if (student_file == NULL) {
+        printf("\n Student data file not found or empty.\n");
+        return 0;
+    } 
+	
+	while (fread(&st, sizeof(st), 1, student_file) == 1)
+	{
+		if (strcmp(StudentID, st.ID) == 0)
+		{
+			student_found = 1;
 
-    int i;
-    for(i=0; i<TotalStudents; i++)
-    {
-        if(strcmp(StudentID,Students[i].ID) == 0)
-        {
-            StudentFoundIndex = i;
-            printf("\n One Student Found for ID: %s\n\n",StudentID);
-            printf(" Student Informations\n");
+            printf("\n One Student Found for ID: %s\n\n", StudentID);
+            printf(" Student Information\n");
             printf("-------------------------\n");
-
-            printf(" ID:    %s\n",Students[i].ID);
-            printf(" Name:  %s\n",Students[i].Name);
-            printf(" Email: %s\n",Students[i].Email);
-            printf(" Phone: %s\n",Students[i].Phone);
-            printf("\n Total Number of Courses: %d\n",Students[i].NumberOfCourse);
-        }
-    }
-    int CourseCount = 0;
-    int j;
-    for(j=0; j<TotalCourse; j++)
-    {
-        if(strcmp(StudentID,Courses[j].StudentID) == 0)
-        {
-            CourseCount++;
-            printf(" Course %d Code: %s\n",CourseCount,Courses[j].Code);
-            printf(" Course %d Name: %s\n",CourseCount,Courses[j].Name);
-        }
-    }
-
-    return StudentFoundIndex;
-}
-
-void EditStudent(int StudentFoundIndex)
-{
-    printf("\n\t\t **** Update The New Student ****\n\n");
-
-    char NewName[300];
-    char NewPhone[300];
-    char NewEmail[300];
-    int NewNumberOfCourses;
-    char StudentID[300];
-    strcpy(StudentID, Students[StudentFoundIndex].ID);
-    int OldTotalNumberOfCourse = Students[StudentFoundIndex].NumberOfCourse;
-
-    int IsValidName = 0;
-    while(!IsValidName)
-    {
-        printf(" Enter The New Name(0 for skip): ");
-        scanf(" %[^\n]s",&NewName);
-        if(strlen(NewName) > 20)
-        {
-            printf(" Error: Name can not be more than 20 characters.\n\n");
-            IsValidName = 0;
-        }
-        else if(strlen(NewName) <= 0)
-        {
-            printf(" Error: Name can not be empty.\n\n");
-            IsValidName = 0;
-        }
-        else
-        {
-            IsValidName = 1;
-        }
-    }
-
-    int IsValidEmail = 0;
-    while(!IsValidEmail)
-    {
-        printf(" Enter The New Email(0 for skip): ");
-        scanf("%s",&NewEmail);
-
-        if(strlen(NewEmail) > 30)
-        {
-            printf(" Error: Email can not be more than 30 characters.\n\n");
-            IsValidEmail = 0;
-        }
-        else if(strlen(NewEmail) <= 0)
-        {
-            printf(" Error: Email can not be empty.\n\n");
-            IsValidEmail = 0;
-        }
-        else if(IsAlreadyExists(NewEmail,'e',StudentID) > 0)
-        {
-            printf(" Error: This Email Already Exists.\n\n");
-            IsValidEmail = 0;
-        }
-        else
-        {
-            IsValidEmail = 1;
-        }
-    }
-
-    int IsValidPhone = 0;
-    while(!IsValidPhone)
-    {
-        printf(" Enter The New Phone(0 for skip): ");
-        scanf("%s",&NewPhone);
-
-        if(strlen(NewPhone) > 20)
-        {
-            printf(" Error: Phone can not be more than 20 characters.\n\n");
-            IsValidPhone = 0;
-        }
-        else if(strlen(NewPhone) <= 0)
-        {
-            printf(" Error: Phone can not be empty.\n\n");
-            IsValidPhone = 0;
-        }
-        else if(IsAlreadyExists(NewPhone,'p',StudentID) > 0)
-        {
-            printf(" Error: This Phone Number is Already Exists.\n\n");
-            IsValidPhone = 0;
-        }
-        else
-        {
-            IsValidPhone = 1;
-        }
-    }
-
-    int IsValidNumberOfCourse = 0;
-    while(!IsValidNumberOfCourse)
-    {
-        printf(" Number of New courses(0 for skip): ");
-        scanf("%d",&NewNumberOfCourses);
-
-        if(NewNumberOfCourses > 4 || NewNumberOfCourses < 0)
-        {
-            printf(" Error: A Student can have maximum 4 and Minimum 0 number of courses.\n\n");
-            IsValidNumberOfCourse = 0;
-        }
-        else
-        {
-            IsValidNumberOfCourse = 1;
-        }
-    }
-
-    if(strcmp(NewName,"0") != 0)
-    {
-        strcpy(Students[StudentFoundIndex].Name,NewName);
-    }
-
-    if(strcmp(NewEmail,"0") != 0)
-    {
-        strcpy(Students[StudentFoundIndex].Email,NewEmail);
-    }
-
-    if(strcmp(NewPhone,"0") != 0)
-    {
-        strcpy(Students[StudentFoundIndex].Phone,NewPhone);
-    }
-
-    if(NewNumberOfCourses != 0)
-    {
-        int OldTotalCourse = Students[StudentFoundIndex].NumberOfCourse;
-        Students[StudentFoundIndex].NumberOfCourse = NewNumberOfCourses;
-
-
-        int FirstCourseIndex;
-        int dc;
-        for(dc=0; dc<TotalCourse; dc++)
-        {
-            if(strcmp(StudentID,Courses[dc].StudentID) == 0)
-            {
-                FirstCourseIndex = dc; 
-                break;
-            }
-        }
-        
-        for(dc=1; dc<=OldTotalCourse; dc++)
-        {
-            DeleteCourseByIndex(FirstCourseIndex);
-        }
-
-        char CourseCode[300];
-        char CourseName[300];
-        for(i=1; i<=NewNumberOfCourses; i++)
-        {
-            printf(" Enter New Course %d Code: ",i);
-            scanf("%s",&CourseCode);
-
-            printf(" Enter New Course %d Name: ",i);
-            scanf(" %[^\n]s",&CourseName);
-
-            strcpy(Courses[TotalCourse].StudentID,StudentID);
-            strcpy(Courses[TotalCourse].Code,CourseCode);
-            strcpy(Courses[TotalCourse].Name,CourseName);
-            TotalCourse++;
-        }
-    }
-
-    printf(" Student Updated Successfully.\n\n");
-
-}
-
-void DeleteStudent(int StudentIndex)
-{
-    int d;
-    int FirstCourseIndexs;
-    struct StudentInfo ThisStudents;
-    ThisStudents = Students[StudentIndex];
-    for(d=0; d<TotalCourse; d++)
-    {
-        if(strcmp(ThisStudents.ID,Courses[d].StudentID) == 0)
-        {
-            FirstCourseIndexs = d;
+            printf(" ID:    %s\n", st.ID);
+            printf(" Name:  %s\n", st.Name);
+            printf(" Email: %s\n", st.Email);
+            printf(" Phone: %s\n", st.Phone);
+            printf("\n Total Number of Courses: %d\n", st.NumberOfCourse);
             break;
-        }
+		}
+		
+	}
+	fclose(student_file);
+	
+	if (!student_found) {
+        printf("\nError: Student with ID '%s' not found.\n", StudentID);
+        return 0; 
     }
-    for(d=1; d<=ThisStudents.NumberOfCourse; d++)
+    
+    FILE *course_file = fopen(COURSE_FILE, "rb");
+    if (course_file == NULL) {
+        printf("\n Course data file not found or empty.\n");
+        return 0;
+    } 
+	
+	 printf("\n Courses Enrolled:\n");
+    printf("-------------------------\n");
+    
+    while (fread(&cr, sizeof(cr), 1, course_file) == 1)
     {
-        DeleteCourseByIndex(FirstCourseIndexs);
+    	if (strcmp(StudentID, cr.StudentID) == 0) {
+            course_count++;
+            printf(" Course %d Code: %s\n", course_count, cr.Code);
+            printf(" Course %d Name: %s\n", course_count, cr.Name);
+        }
+	}
+	
+	if (course_count == 0) {
+        printf(" No courses found for this student.\n");
     }
-    DeleteStudentByIndex(StudentIndex);
-    printf(" Student Deleted Successfully.\n\n");
-    GoBackOrExit();
+
+    fclose(course_file);
+    return 1; 
+
 }
 
+void EditStudent(char *StudentID)
+{
+	int i;
+    system("cls");
+
+    FILE *fp = fopen(ACCOUNT_FILE, "rb");
+    if (!fp) {
+        printf("\n Error: Student file not found.\n");
+        return;
+    }
+
+    Students list[500];
+    int count = 0;
+    int foundIndex = -1;
+
+    while (fread(&list[count], sizeof(Students), 1, fp) == 1)
+    {
+        if (strcmp(list[count].ID, StudentID) == 0)
+        {
+            foundIndex = count;
+        }
+        count++;
+    }
+    fclose(fp);
+
+    if (foundIndex == -1)
+    {
+        printf("\n Student with ID %s not found!\n", StudentID);
+        return;
+    }
+
+    Students st = list[foundIndex];
+    char temp[100];
+
+    printf("\n ==== EDITING STUDENT (ID: %s) ====\n\n", st.ID);
+
+    // NAME
+    printf(" New Name (0 = keep old) [Current: %s]: ", st.Name);
+    scanf(" %[^\n]", temp);
+    ClearInputBuffer();
+    if (strcmp(temp, "0") != 0)
+        strcpy(st.Name, temp);
+
+    // EMAIL
+    printf(" New Email (0 = keep old) [Current: %s]: ", st.Email);
+    scanf(" %30s", temp);
+    ClearInputBuffer();
+    if (strcmp(temp, "0") != 0)
+        strcpy(st.Email, temp);
+
+    // PHONE
+    printf(" New Phone (0 = keep old) [Current: %s]: ", st.Phone);
+    scanf(" %20s", temp);
+    ClearInputBuffer();
+    if (strcmp(temp, "0") != 0)
+        strcpy(st.Phone, temp);
+
+    // NUMBER OF COURSES
+    int nc;
+    printf(" New Number of Courses (0 = keep old) [Current: %d]: ", st.NumberOfCourse);
+    scanf("%d", &nc);
+    ClearInputBuffer();
+    if (nc >= 1 && nc <= 4)
+        st.NumberOfCourse = nc;
+
+    // Save back
+    list[foundIndex] = st;
+
+    fp = fopen(ACCOUNT_FILE, "wb");
+    for (i = 0; i < count; i++)
+        fwrite(&list[i], sizeof(Students), 1, fp);
+
+    fclose(fp);
+
+    printf("\n Student Updated Successfully!\n");
+    printf(" Press ENTER to continue...");
+    getchar();
+}
+
+
+
+void DeleteStudent(char StudentID[11])
+{
+	FILE *student_read = fopen(ACCOUNT_FILE,"rb");
+	if (student_read == NULL)
+	 {
+	 	printf(" Error: Student file not found!\n");
+        return;
+	 }
+	 
+	 Students list[500];
+     int count = 0;
+     
+     while(fread(&list[count], sizeof(Students), 1, student_read))
+     {
+     	count++;
+	 }
+	 fclose(student_read);
+	 
+	 
+	 int found = 0;
+	 
+	 FILE *fout = fopen("temp.dat","wb");
+	 
+	 for (i=0; i<count; i++)
+	 {
+	 	if (strcmp(list[i].ID, StudentID) ==0)
+	 	{
+	 		found = 1;
+	 		continue;
+		 }fwrite(&list[i], sizeof(Students), 1, fout);
+	 }
+	 fclose(fout);
+	 
+	 if (!fout)
+	 {
+	 	printf("Student ID not found!\n");
+        remove("temp.dat"); 
+        return;
+	 }
+	 
+	remove(ACCOUNT_FILE);
+    rename("temp.dat", ACCOUNT_FILE);
+    printf("Student deleted successfully.\n");
+    
+    
+    
+    
+    
+    FILE *courses_read = fopen(COURSE_FILE, "rb");
+    if (courses_read == NULL)
+	 {
+	 	printf(" Error: Courses file not found!\n");
+        return;
+	 }
+	 Courses clist[500];
+	 int c=0;
+	 while(fread(&clist[c], sizeof(Students), 1, courses_read))
+     {
+     	c++;
+	 }
+	 fclose(courses_read);
+	 
+	 FILE *cout = fopen("temp_courses.dat", "wb");
+	 for (i=0; i<c; i++)
+	 {
+	 	if (strcmp(clist[i].StudentID, StudentID) !=0)
+	 	{
+	 		fwrite(&clist[i], sizeof(Courses), 1, cout);
+	 		
+		 }
+		 
+	 }
+	 
+	 fclose(cout);
+	 
+	 remove(COURSE_FILE);
+    rename("temp_courses.dat", COURSE_FILE);
+    
+}
 void DeleteAllStudents()
 {
-    TotalStudents = 0;
-    TotalCourse = 0;
-    printf(" All Students Deleted Successfully.\n\n");
-    GoBackOrExit();
+	FILE *f = fopen(ACCOUNT_FILE, "wb");
+	if(f) fclose(f);
+	FILE *c = fopen(COURSE_FILE, "wb");
+	if(c) fclose(c);
+	
+	printf("All students and their courses deleted successfully.\n");
+	
 }
 
-
-void DeleteCourseByIndex(int CourseIndex)
+int login()
 {
-    int c;
-    for(c=0; c<TotalCourse-1; c++)
-    {
-        if(c>=CourseIndex)
-        {
-            Courses[c] = Courses[c+1];
-        }
-    }
-    TotalCourse--;
+	char username[20];
+    char password[20];
+    int attempts = 0;  
 
+    while(attempts < 3)
+    {
+
+	    printf("\nLogin to your account:\n\n");
+		
+		printf("Enter username: ");
+		scanf("%s", &username);
+		
+		printf("Enter Password: ");
+		inputPassword(password);  
+		
+		if(strcmp(username, USERNAME) == 0 && strcmp(password, PASSWORD) == 0)
+	    {
+	        printf("\n Login Successful! Access Granted.\n");
+	        return 1;  
+	    }
+	    else
+	    {
+	    	attempts++;
+	        printf("\n Invalid Username or Password! Access Denied.\n");
+	          
+	    }
+	}
+	
+	printf("\n You have entered wrong credentials 3 times.\n");
+    printf(" Access Denied. Exiting Program...\n\n");
+
+    return 0;
+	
+	
 }
 
-void DeleteStudentByIndex(int CourseIndex)
-{
-    int s;
-    for(s=0; s<TotalStudents-1; s++)
-    {
-        if(s>=CourseIndex)
-        {
-            Students[s] = Students[s+1];
-        }
-    }
-    TotalStudents--;
-}
-
-
-int IsAlreadyExists(char GivenLine[300],char InfoType, char StudentID[300])
-{
-    int EmailExists = 0;
-    int PhoneExists = 0;
-    int IDExists = 0;
-    int ep;
-
-    for(ep=0; ep<TotalStudents; ep++)
-    {
-        if(strcmp(GivenLine,Students[ep].ID) == 0)
-        {
-            IDExists++;
-        }
-        if(strcmp(GivenLine,Students[ep].Email) == 0 && strcmp(StudentID,Students[ep].ID) != 0 )
-        {
-            EmailExists++;
-        }
-        if(strcmp(GivenLine,Students[ep].Phone) == 0 && strcmp(StudentID,Students[ep].ID) != 0)
-        {
-            PhoneExists++;
-        }
-
-    }
-
-    if(InfoType == 'i')
-    {
-        return IDExists;
-    }
-    else if(InfoType == 'e')
-    {
-        return EmailExists;
-    }
-    else if(InfoType == 'p')
-    {
-        return PhoneExists;
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-void ErrorAndRestart(char *error[100])
-{
-    printf("%s\n",error);
+void inputPassword(char *pass) {
     int i = 0;
-    printf("Restarting the program: ");
-    for(i=0; i<10; i++)
-    {
-        printf(".");
-        Sleep(500);
+    char ch;
+
+    while (1) {
+        ch = getch(); 
+
+        if (ch == 13) {
+            pass[i] = '\0';
+            printf("\n");
+            break;
+        }
+        else if (ch == 8 && i > 0) {  
+            i--;
+            printf("\b \b"); 
+        }
+        else {
+            pass[i++] = ch;
+            printf("*");   
+        }
     }
-    system("cls");
-    main();
 }
 
-void UserGuideline()
+void PlaySlidingPuzzle()
 {
-    printf("\n\t\t **** How it Works? ****\n\n");
-    printf(" -> You will only able to store the Student's ID, Name, Email, Phone, Number of Courses.\n");
-    printf(" -> A student can have maximum 4 courses and minimum 1 course.\n");
-    printf(" -> Student ID can be maximum 10 characters long and unique for every students.\n");
-    printf(" -> Student Name can be maximum 20 characters long.\n");
-    printf(" -> Student Email can be maximum 30 characters long and unique for every students.\n");
-    printf(" -> Student Phone can be maximum 20 characters long and unique for every students.\n");
-    printf(" -> Course code can be maximum 10 characters long.\n");
-    printf(" -> Course Name can be maximum 20 characters long.\n\n");
+    srand(time(NULL));
+    int moves=150;
+    int arr[3][3];
+    char exit, again;
 
-    printf(" ->> visit www.insideTheDiv.com for more project like this. <<-\n\n");
-}
-
-void AboutUs()
-{
-    printf("\n\t\t **** About US? ****\n\n");
-
-    printf(" Some important note we should remember.\n");
-    printf(" -> This is a simple student management system project.\n");
-    printf(" -> You can modify the source code.\n");
-    printf(" -> You can use this project only for personal purpose not for business.\n\n");
-
-    printf(" ->> visit www.insideTheDiv.com for more project like this. <<-\n\n");
-}
-
-void GoBackOrExit()
-{
-    getchar();
-    char Option;
-    printf(" Go back(b)? or Exit(0)?: ");
-    scanf("%c",&Option);
-    if(Option == '0')
-    {
-        ExitProject();
-    }
-    else
-    {
+    while(1){
+        pattern(arr);
         system("cls");
-    }
+        rules();
+        system("cls");
+
+        while(!win(arr))
+        {	
+            if (moves==0)
+			{
+				break;
+			}
+
+            printf("\t\t Moves left: %d\n\n\n", moves);
+			showMatrix(arr);
+				
+			int k = readEnteredKey();
+
+            // Exit game
+			if (k== 101 || k == 69)
+			{
+				printf("Are you sure you want to exit the game (y/n): ");
+				scanf(" %c", &exit);
+
+				if (exit == 'y' || exit == 'Y')
+				{
+					return;   // return back to main menu
+				}	
+			}
+
+			move(arr, k, &moves);  
+			system("cls");
+		}
+
+		if (moves == 0)
+		{
+			printColor("YOU LOSE THE GAME, MOVES END\n", RED);
+		}
+		else{
+			printColor("YOU WON!!\n", GREEN);
+		}
+
+		printf("Do you want to play again (y/n): ");
+		scanf(" %c", &again);
+
+		if (again == 'n' || again == 'N')
+		{
+			return; // go back to menu
+		}
+		else {
+			moves = 150;
+		}
+	}
 }
 
-void ExitProject()
+
+void rules(){
+	char start;
+	printColor("\tWELCOME TO TILES PUZZLE GAME\n\n", GREEN);
+    printColor("\tRULES OF THE GAME\n", GREEN);
+    printf("\n1)You can move only 1 step at a time with the arrow key.\n");
+    printf("\nMove UP : UP ARROW");
+    printf("\nMove DOWN : DOWN ARROW");
+    printf("\nMove RIGHT : RIGHT ARROW");
+    printf("\nMove LEFT : LEFT ARROW");
+    printf("\n\n2)You can move numbers at an empty position only.");
+    printf("\n\n3)For each valid move: Your total number of moves will be decrease by 1.");
+    printf("\n\n4)Winning situation: Numbers should be arranged as shown below\n\n");
+    printf("\t\t------------------\n");
+    printf("\t\t| 1  |  2  |  3  |\n");
+    printf("\t\t| 4  |  5  |  6  |\n");
+    printf("\t\t| 7  |  8  |     |\n");
+    printf("\t\t------------------\n");
+    printf("\n5)You can exit the game at any time by pressing 'E' or 'e'\n\nEnter any key to start.....");
+    getch();
+}
+
+
+void pattern(int arr[3][3])
 {
-    system("cls");
-    int i;
-    char ThankYou[100]     = " ========= Thank You =========\n";
-    char SeeYouSoon[100]   = " ========= See You Soon ======\n";
-    for(i=0; i<strlen(ThankYou); i++)
+	int i,j;
+	int nums[8];
+	for (i=0; i<8; i++)
+	{
+		nums[i] = i+1;
+	}		
+		
+	for (i = 7; i > 0; i--)
     {
-        printf("%c",ThankYou[i]);
-        Sleep(40);
-    }
-    for(i=0; i<strlen(SeeYouSoon); i++)
-    {
-        printf("%c",SeeYouSoon[i]);
-        Sleep(40);
-    }
-    exit(0);
+        int r = rand() % (i + 1);
+        int temp = nums[i];
+        nums[i] = nums[r];
+        nums[r] = temp;
+    }    
+    
+	
+	int index = 0;	
+	for (i=0; i<3; i++)
+	{
+		for (j=0; j<3; j++)
+		{
+			if (i == 2 && j==2)
+			{
+				arr[i][j]= 0;
+				
+			}
+			else{
+				arr[i][j] = nums[index++];
+			}	
+			
+		}
+	}
 }
 
-void DataSeed()
+void showMatrix(int arr[3][3])
 {
-
-    
-    strcpy(Students[0].ID,"S-1");
-    strcpy(Students[0].Name,"Student 1");
-    strcpy(Students[0].Phone,"016111111111");
-    strcpy(Students[0].Email,"student-1@gmail.com");
-    Students[0].NumberOfCourse=1;
-
-    strcpy(Courses[0].StudentID,"S-1");
-    strcpy(Courses[0].Code,"CSE-1");
-    strcpy(Courses[0].Name,"Course - 1");
-
-    
-    strcpy(Students[1].ID,"S-2");
-    strcpy(Students[1].Name,"Student 2");
-    strcpy(Students[1].Phone,"016111111112");
-    strcpy(Students[1].Email,"student-2@gmail.com");
-    Students[1].NumberOfCourse=2;
-
-    strcpy(Courses[1].StudentID,"S-2");
-    strcpy(Courses[1].Code,"CSE-1");
-    strcpy(Courses[1].Name,"Course - 1");
-
-    strcpy(Courses[2].StudentID,"S-2");
-    strcpy(Courses[2].Code,"CSE-2");
-    strcpy(Courses[2].Name,"Course - 2");
-
-
-    
-    strcpy(Students[2].ID,"S-3");
-    strcpy(Students[2].Name,"Student 3");
-    strcpy(Students[2].Phone,"016111111113");
-    strcpy(Students[2].Email,"student-3@gmail.com");
-    Students[2].NumberOfCourse=3;
-
-    strcpy(Courses[3].StudentID,"S-3");
-    strcpy(Courses[3].Code,"CSE-1");
-    strcpy(Courses[3].Name,"Course - 1");
-
-    strcpy(Courses[4].StudentID,"S-3");
-    strcpy(Courses[4].Code,"CSE-2");
-    strcpy(Courses[4].Name,"Course - 2");
-
-    strcpy(Courses[5].StudentID,"S-3");
-    strcpy(Courses[5].Code,"CSE-3");
-    strcpy(Courses[5].Name,"Course - 3");
-
-    TotalStudents = 3;
-    TotalCourse = 6;
+    int i,j;
+    printf("\n\n");
+    printf("--------------------\n");
+    for(i=0;i<3;i++)
+    {
+        printf("|");
+        for(j=0;j<3;j++)
+        {
+            if(arr[i][j]!=0)
+                printf("%2d | ",arr[i][j]);
+            else
+                printf("   | ");
+        }
+        printf("\n");
+    }
+    printf("--------------------\n");
 }
+
+
+int readEnteredKey()
+{
+	char ch;
+	ch=_getch();
+	if (ch ==-32)
+	{
+		ch =_getch();
+	}
+	return ch;
+}
+void move(int arr[3][3], int k, int *moves){
+	int i,j;
+	for (i=0; i<3; i++)
+	{
+		for ( j=0; j<3; j++)
+		{
+			if (arr[i][j] == 0)
+			{
+				
+				if (k==72 && i>0)
+				{
+					arr[i][j] = arr[i-1][j];
+					arr[i-1][j] = 0;
+					(*moves)--;
+;
+					return;
+				
+				}
+				else if (k==80 && i<2)
+				{
+					arr[i][j] = arr[i+1][j];
+					arr[i+1][j] = 0;
+					(*moves)--;
+;
+					return;
+				}
+				else if (k==75 && j>0) //left
+				{
+					arr[i][j] = arr[i][j-1];
+					arr[i][j-1] = 0;
+					*moves--;
+					return;
+				}
+				else if (k==77 && j<2)
+				{
+					arr[i][j] = arr[i][j+1];
+					arr[i][j+1] = 0;
+					(*moves)--;
+;
+					return;
+				}
+				
+			}
+			
+		}
+	}
+	printf("Invalid Move");
+} 
+
+int win(int arr[3][3])
+{
+    int i,j, k = 1;
+
+    for (i = 0; i < 3; i++)
+    {
+        for (j = 0; j < 3; j++)
+        {
+            if (i == 2 && j == 2)  
+                return arr[i][j] == 0;  // final cell must be 0
+
+            if (arr[i][j] != k)
+                return 0;
+
+            k++;
+        }
+    }
+
+    return 1;
+}
+
